@@ -1,0 +1,42 @@
+#!/bin/bash
+# My sdm customizations
+#
+function loadparams() {
+    source $SDMPT/etc/sdm/sdm-readparams
+}
+#
+# $1 is the phase: "0", "1", or "post-install"
+#
+phase=$1
+pfx="$(basename $0)"
+args="$2"
+vldargs="|row|col|"
+loadparams
+
+if [ "$phase" == "0" ]
+then
+	logtoboth "* Plugin $pfx: Not post-install! Skip!"
+elif [ "$phase" == "1" ]
+then
+	logtoboth "* Plugin $pfx: Not post-install! Skip!"
+else
+    #
+    # Post-install edits
+    #
+    logtoboth "* Plugin $pfx: Phase post-install"
+    plugin_getargs $pfx "$args" "" "|row|col|"
+    #logfreespace "at start of $pfx Phase post-install"
+    logtoboth "> Plugin $pfx: Create DHCP configuration using IP address 10.0.$row.$col/24"
+    #
+    # Edit DHCP file to contain static IP designated by row and column provided to plugin
+    #
+    cat <<EOF > /etc/dhcpcd.conf
+interface eth0
+static_routers=10.0.100.1
+static domain_name_servers=1.1.1.1
+static ip_address=10.0.$row.$col/24
+EOF
+    logtoboth "* Plugin $pfx: Phase post-install Completed"
+fi
+exit 0
+

@@ -1,0 +1,48 @@
+#!/bin/bash
+#
+# Setup RPi's for Supercomputing Club UCSD.
+#
+# Assume:
+# - Ubuntu system
+# - Right Raspbian image to configure located at RASPIAN_IMG_PATH
+# - SDM installed (https://github.com/gitbls/sdm)
+# - SD card located at SD_CARD_PATH
+# - Password for pi user located at "pi_pass.txt"
+#
+# You'll also probably want to setup the image first as well.
+# Basically, we want to run SDM for one time before hand to configure username, password, etc.
+# Use this command:
+# sudo sdm --customize --L10n --restart --nowpa --user customuser --password-pi "$(cat pi_pass.txt)" --password-user "$(cat pi_pass.txt)" raspbian.img
+#
+# Verify SD card exists on machine at /dev/sda
+RASPBIAN_IMG_PATH="raspbian.img"
+SD_CARD_PATH="/dev/sda"
+
+if [[ $# -ne 2 ]]; then
+	echo "Usage: ./prep_pi <row> <col>"
+	exit 1
+fi
+
+ROW=$1
+COL=$2
+
+# Check if SD_CARD_PATH is mounted. Don't write to that stuff!
+if findmnt --source $SD_CARD_PATH; then
+	echo "$SD_CARD_PATH should NOT be mounted! Watch out that you're not writing to something important! I'm peacing out."
+	exit!
+else
+	echo "$SD_CARD_PATH not mounted. Continuing..."
+fi
+
+# Check if /dev/sda is actually an SD card! If your main drive is 64 GB big and somehow unmounted, I'm sorry in advance.
+SIZE_DEVICE="$(blockdev --getsize64 $SD_CARD_PATH)"
+
+if [[ $SIZE_DEVICE == 62226694144 ]]; then
+	echo "Found SD Card! Continuing..."
+else
+	echo "$SD_CARD_PATH is probably not one of our 64 GB SD cards! Watch out! I'm peaceing out just in case..."
+	exit 1
+fi
+
+echo "Running SDM..."
+sudo sdm --burn $SD_CARD_PATH --hostname pi-$ROW-$COL --expand-root --plugin $(pwd)/clusterpi:"row=$ROW|col=$COL" $RASPBIAN_IMG_PATH
